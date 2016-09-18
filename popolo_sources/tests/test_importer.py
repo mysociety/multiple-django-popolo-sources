@@ -1,7 +1,7 @@
 import json
 from mock import patch
 from os.path import dirname, exists, join
-from urlparse import urlsplit
+from six.moves.urllib.parse import urlsplit
 
 from django.test import TestCase
 
