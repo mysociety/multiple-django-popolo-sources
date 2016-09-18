@@ -3,6 +3,7 @@ from mock import patch
 from os.path import dirname, exists, join
 from six.moves.urllib.parse import urlsplit
 
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
 from popolo.models import Person
@@ -100,3 +101,28 @@ class PopoloSourceTests(TestCase):
         self.assertEqual(2, LinkToPopoloSource.objects.count())
         deleted_person = LinkToPopoloSource.objects.get(deleted_from_source=True)
         self.assertEqual(deleted_person.popolo_object.name, 'Bob')
+
+    def test_deleted_person_reappears(self, faked_get):
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/two-people.json')
+        # Create a deleted Alice by hand:
+        alice = Person.objects.create(name='Alice')
+        alice.identifiers.create(
+            scheme='popit-person',
+            identifier='a1b2')
+        LinkToPopoloSource.objects.create(
+            popolo_object=alice,
+            popolo_source=popolo_source,
+            deleted_from_source=True)
+        # Now try updating from the source:
+        importer = PopoloSourceImporter(popolo_source)
+        importer.update_from_source()
+        # Now try getting the link and checking that Alice is no
+        # longer deleted:
+        self.assertEqual(2, Person.objects.count())
+        self.assertEqual(2, LinkToPopoloSource.objects.count())
+        link = LinkToPopoloSource.objects.get(
+            object_id=alice.id,
+            content_type=ContentType.objects.get_for_model(alice),
+            popolo_source=popolo_source)
+        self.assertFalse(link.deleted_from_source)
