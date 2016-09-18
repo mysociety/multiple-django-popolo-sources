@@ -86,3 +86,17 @@ class PopoloSourceTests(TestCase):
             sorted(links_cts),
             ['area', 'membership', 'organization', 'person', 'post']
         )
+
+    def test_two_people_one_later_removed(self, faked_get):
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/two-people.json')
+        importer = PopoloSourceImporter(popolo_source)
+        importer.update_from_source()
+        # Now change the URL of the source to one that only has one
+        # person:
+        popolo_source.url = 'http://example.com/single-person.json'
+        popolo_source.save()
+        importer.update_from_source()
+        self.assertEqual(2, LinkToPopoloSource.objects.count())
+        deleted_person = LinkToPopoloSource.objects.get(deleted_from_source=True)
+        self.assertEqual(deleted_person.popolo_object.name, 'Bob')
