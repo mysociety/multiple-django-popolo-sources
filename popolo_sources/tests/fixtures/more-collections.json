@@ -1,0 +1,60 @@
+{
+    "persons": [
+        {
+            "id": "a1b2",
+            "name": "Alice",
+            "identifiers": [
+                {
+                    "identifier": "123456789",
+                    "scheme": "yournextmp-candidate"
+                }
+            ],
+            "contact_details": [
+                {
+                    "contact_type": "twitter",
+                    "label": "",
+                    "note": "",
+                    "value": "sometwitterusernameorother"
+                }
+
+            ],
+            "links": [
+                {
+                    "note": "homepage",
+                    "url": "http://example.com/alice"
+                }
+            ]
+        }
+    ],
+    "organizations": [
+        {
+            "id": "commons",
+            "name": "House of Commons"
+        }
+    ],
+    "memberships": [
+        {
+            "person_id": "a1b2",
+            "organization_id": "commons",
+            "post_id": "65808"
+        }
+    ],
+    "areas": [
+        {
+            "id": 100,
+            "name": "Dulwich and West Norwood",
+            "identifier": "gss:E14000673"
+        }
+    ],
+    "posts": [
+        {
+            "id": "65808",
+            "url": "https://candidates.democracyclub.org.uk/api/v0.9/posts/65808/",
+            "label": "Member of Parliament for Dulwich and West Norwood",
+            "role": "Member of Parliament",
+            "organization_id": "commons",
+            "group": "England",
+            "area_id": 100
+        }
+    ]
+}

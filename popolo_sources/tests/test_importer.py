@@ -6,7 +6,7 @@ from urlparse import urlsplit
 from django.test import TestCase
 
 from popolo.models import Person
-from popolo_sources.models import PopoloSource
+from popolo_sources.models import PopoloSource, LinkToPopoloSource
 from popolo_sources.importer import PopoloSourceImporter
 
 
@@ -70,3 +70,19 @@ class PopoloSourceTests(TestCase):
         importer_b = PopoloSourceImporter(popolo_source_b)
         importer_b.update_from_source()
         self.assertEqual(Person.objects.count(), 2)
+
+    def test_more_popolo_collections(self, faked_get):
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/more-collections.json')
+        importer = PopoloSourceImporter(popolo_source)
+        importer.update_from_source()
+        # Check all the expected links have been created. Note that
+        # this doesn't include ContactDetail, Identifier, Source or
+        # other objects related to the top-level collections - it's
+        # just the top-level objects.
+        links_cts = LinkToPopoloSource.objects.values_list(
+            'content_type__model', flat=True)
+        self.assertEqual(
+            sorted(links_cts),
+            ['area', 'membership', 'organization', 'person', 'post']
+        )
