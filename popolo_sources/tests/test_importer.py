@@ -1,5 +1,6 @@
 import json
 from mock import patch
+from os.path import dirname, exists, join
 from urlparse import urlsplit
 
 from django.test import TestCase
@@ -23,52 +24,12 @@ class FakeResponse(object):
 
 def fake_requests_get(url, *args, **kwargs):
     split = urlsplit(url)
-    if split.path == '/single-person.json':
-        data = '''
-{
-    "persons": [
-        {
-            "id": "a1b2",
-            "name": "Alice"
-        }
-
-    ],
-    "organizations": [],
-    "memberships": []
-}
-'''
-    elif split.path == '/same-person-different-source.json':
-        data = '''
-{
-    "persons": [
-        {
-            "id": "a1b2",
-            "name": "Alice"
-        }
-
-    ],
-    "organizations": [],
-    "memberships": []
-}
-'''
-    elif split.path == '/two-people.json':
-        data = '''
-{
-    "persons": [
-        {
-            "id": "a1b2",
-            "name": "Alice"
-        },
-        {
-            "id": "b1c2",
-            "name": "Bob"
-        }
-    ]
-}
-'''
-    else:
-        raise Exception("The URL '{0}' hasn't been faked")
-    return FakeResponse(data)
+    basename = split.path.lstrip('/').replace('/', '_')
+    filename = join(dirname(__file__), 'fixtures', basename)
+    if not exists(filename):
+        raise Exception("The URL '{0}' hasn't been faked".format(url))
+    with open(filename) as f:
+        return FakeResponse(f.read())
 
 
 @patch('popolo_sources.importer.requests.get', side_effect=fake_requests_get)

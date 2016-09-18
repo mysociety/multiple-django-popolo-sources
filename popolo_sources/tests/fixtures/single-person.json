@@ -1,0 +1,11 @@
+{
+    "persons": [
+        {
+            "id": "a1b2",
+            "name": "Alice"
+        }
+
+    ],
+    "organizations": [],
+    "memberships": []
+}
