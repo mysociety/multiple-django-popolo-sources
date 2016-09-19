@@ -1,0 +1,22 @@
+language: python
+
+matrix:
+  include:
+    - python: 3.5
+      env: TOXENV=py35-1.8
+    - python: 2.7
+      env: TOXENV=py27-1.7
+    - python: 2.7
+      env: TOXENV=py27-1.8
+
+sudo: false
+
+install:
+  - pip install tox python-coveralls
+
+script:
+  - tox
+  - coverage html
+
+after_success:
+  - coveralls
