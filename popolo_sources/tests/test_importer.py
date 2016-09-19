@@ -1,7 +1,11 @@
+from contextlib import contextmanager
 import json
 from mock import patch
 from os.path import dirname, exists, join
-from six.moves.urllib.parse import urlsplit
+import sys
+
+from django.utils import six
+from django.utils.six.moves.urllib.parse import urlsplit
 
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
@@ -33,8 +37,27 @@ def fake_requests_get(url, *args, **kwargs):
         return FakeResponse(f.read())
 
 
+@contextmanager
+def capture_output():
+    # Suggested here: http://stackoverflow.com/a/17981937/223092
+    new_out, new_err = six.StringIO(), six.StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield new_out, new_err
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+
 @patch('popolo_sources.importer.requests.get', side_effect=fake_requests_get)
 class PopoloSourceTests(TestCase):
+
+    def test_missing_source(self, faked_get):
+        with self.assertRaises(Exception):
+            popolo_source = PopoloSource.objects.create(
+                url='http://example.com/does-not-exist.json')
+            importer = PopoloSourceImporter(popolo_source)
+            importer.update_from_source()
 
     def test_import(self, faked_get):
         popolo_source = PopoloSource.objects.create(
@@ -126,3 +149,40 @@ class PopoloSourceTests(TestCase):
             content_type=ContentType.objects.get_for_model(alice),
             popolo_source=popolo_source)
         self.assertFalse(link.deleted_from_source)
+
+    def test_multiple_identifiers_found(self, faked_get):
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/single-person.json')
+        alice = Person.objects.create(name='Alice')
+        alice.identifiers.create(
+            scheme='popit-person',
+            identifier='a1b2')
+        bob_with_alice_id = Person.objects.create(name='Bob')
+        bob_with_alice_id.identifiers.create(
+            scheme='popit-person',
+            identifier='a1b2')
+        LinkToPopoloSource.objects.create(
+            object_id=alice.id,
+            content_type=ContentType.objects.get_for_model(alice),
+            popolo_source=popolo_source)
+        LinkToPopoloSource.objects.create(
+            object_id=bob_with_alice_id.id,
+            content_type=ContentType.objects.get_for_model(bob_with_alice_id),
+            popolo_source=popolo_source)
+        # Now there should be multiple identifiers found when
+        # importing Alice from source:
+        importer = PopoloSourceImporter(popolo_source)
+        with capture_output() as (out, err):
+            with self.assertRaisesRegexp(
+                    Person.MultipleObjectsReturned,
+                    r"^Unexpectedly found more than 1 objects matching PopoloSource object, collection 'person' and ID 'a1b2' - found 2 instead.$"):
+                importer.update_from_source()
+
+    def test_unknown_collection(self, faked_get):
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/single-person.json')
+        importer = PopoloSourceImporter(popolo_source)
+        with self.assertRaisesRegexp(
+                Exception,
+                r"Unknown collection 'not-a-collection'"):
+            importer.get_existing_django_object('not-a-collection', 'y1z2')
