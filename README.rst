@@ -64,5 +64,7 @@ Tests
 
 To run the tests you can do:
 
+.. code:: bash
+
     pip install -e .[test]
     ./runtests.py
