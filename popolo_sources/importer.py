@@ -12,12 +12,17 @@ class LinkCreator(object):
 
     def __init__(self, popolo_source):
         self.popolo_source = popolo_source
+        self.collection_to_content_type = {
+            collection: ContentType.objects.get(
+                app_label='popolo', model=collection)
+            for collection in NEW_COLLECTIONS}
 
     def notify(self, collection, django_object, created, popolo_data):
-        if created:
-            LinkToPopoloSource.objects.create(
-                popolo_object=django_object,
-                popolo_source=self.popolo_source)
+        LinkToPopoloSource.objects.update_or_create(
+            content_type=self.collection_to_content_type[collection],
+            object_id=django_object.id,
+            popolo_source=self.popolo_source,
+            defaults={'deleted_from_source': False})
 
 
 class CurrentObjectsTracker(object):
@@ -50,7 +55,7 @@ class PopoloSourceImporter(PopoloJSONImporter):
                 )
         return model_and_object_id_tuples
 
-    def update_deleted_status(self, model_and_object_id_tuples, new_deleted_status):
+    def mark_as_deleted(self, model_and_object_id_tuples):
         class_to_object_ids = defaultdict(set)
         for mc, object_id in model_and_object_id_tuples:
             class_to_object_ids[mc].add(object_id)
@@ -60,7 +65,7 @@ class PopoloSourceImporter(PopoloJSONImporter):
                 popolo_source=self.popolo_source,
                 content_type=ct,
                 object_id__in=object_ids).update(
-                    deleted_from_source=new_deleted_status)
+                    deleted_from_source=True)
 
     def update_from_source(self):
         # Save the objects we knew about before the update:
@@ -76,11 +81,7 @@ class PopoloSourceImporter(PopoloJSONImporter):
         # Now after importing, we can find those objects that no
         # longer exist in the source and mark them as such.
         disappeared = existing_live_objects - tracker.seen
-        self.update_deleted_status(disappeared, True)
-        # Some items might have reappeared, too - make sure they're
-        # marked as *not* deleted.
-        reappeared = tracker.seen & existing_deleted_objects
-        self.update_deleted_status(reappeared, False)
+        self.mark_as_deleted(disappeared)
 
     # We need to override this so that we only consider something an
     # existing object if it's from the same PopoloSource, as well as
