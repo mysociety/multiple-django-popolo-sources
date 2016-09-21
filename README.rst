@@ -13,7 +13,7 @@ been deleted from a source; they are marked as having
 disappeared, but the django-popolo models are not deleted.  If
 they reappear with the same ID in the Popolo JSON source, the
 disappeared flag (`deleted_from_source`) will be set back to
-`True`.
+`False`.
 
 It is only the objects that are listed at the top level of a
 Popolo JSON file that are tracked by the code in this package.
