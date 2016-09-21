@@ -12,25 +12,25 @@ In addition, this package allows you to track objects that have
 been deleted from a source; they are marked as having
 disappeared, but the django-popolo models are not deleted.  If
 they reappear with the same ID in the Popolo JSON source, the
-disappeared flag (`deleted_from_source`) will be set back to
-`True`.
+disappeared flag (:code:`deleted_from_source`) will be set back to
+:code:`True`.
 
 It is only the objects that are listed at the top level of a
 Popolo JSON file that are tracked by the code in this package.
 That includes:
 
-* `Area`
-* `Membership`
-* `Organization`
-* `Person`
-* `Post`
+* :code:`Area`
+* :code:`Membership`
+* :code:`Organization`
+* :code:`Person`
+* :code:`Post`
 
-But does not include, for example, `ContactDetail`.
+But does not include, for example, :code:`ContactDetail`.
 
 Usage
 -----
 
-To create a new `PopoloSource` you can do:
+To create a new :code:`PopoloSource` you can do:
 
 .. code:: python
 
@@ -38,20 +38,21 @@ To create a new `PopoloSource` you can do:
 
     ps = PopoloSource(url='http://example.com/parliament.json')
 
-To then create django-popolo models (`Person`, `Organization`,
-etc.) based on the Popolo JSON at that URL, you can now do:
+To then create django-popolo models (:code:`Person`,
+:code:`Organization`, etc.) based on the Popolo JSON at that
+URL, you can now do:
 
 .. code:: python
 
     ps.update_from_source()
 
-You can run `.update_from_source()` again to update the models
+You can run :code:`.update_from_source()` again to update the models
 based on any changes in the Popolo JSON source.
 
-The model that represents the join table linking `PopoloSource`
+The model that represents the join table linking :code:`PopoloSource`
 models with django-popolo models is
-`popolo_sources.models.LinkToPopoloSource`. This model has the
-`deleted_from_source` attributed, so you can find all
+:code:`popolo_sources.models.LinkToPopoloSource`. This model has the
+:code:`deleted_from_source` attributed, so you can find all
 non-deleted top-level django-popolo with code like:
 
 .. code:: python
