@@ -24,6 +24,9 @@ class LinkCreator(object):
             popolo_source=self.popolo_source,
             defaults={'deleted_from_source': False})
 
+    def notify_deleted(self, collection, django_object):
+        pass
+
 
 class CurrentObjectsTracker(object):
 
@@ -32,6 +35,17 @@ class CurrentObjectsTracker(object):
 
     def notify(self, collection, django_object, created, popolo_data):
         self.seen.add((type(django_object), django_object.id))
+
+    def notify_deleted(self, collection, django_object):
+        pass
+
+
+def _group_by_model_class(model_and_object_id_tuples):
+    class_to_object_ids = defaultdict(set)
+    for mc, object_id in model_and_object_id_tuples:
+        class_to_object_ids[mc].add(object_id)
+    for model_class, object_ids in class_to_object_ids.items():
+        yield model_class, object_ids
 
 
 class PopoloSourceImporter(PopoloJSONImporter):
@@ -56,16 +70,22 @@ class PopoloSourceImporter(PopoloJSONImporter):
         return model_and_object_id_tuples
 
     def mark_as_deleted(self, model_and_object_id_tuples):
-        class_to_object_ids = defaultdict(set)
-        for mc, object_id in model_and_object_id_tuples:
-            class_to_object_ids[mc].add(object_id)
-        for mc, object_ids in class_to_object_ids.items():
-            ct = ContentType.objects.get_for_model(mc)
+        iterator = _group_by_model_class(model_and_object_id_tuples)
+        for model_class, object_ids in iterator:
+            content_type = ContentType.objects.get_for_model(model_class)
             LinkToPopoloSource.objects.filter(
                 popolo_source=self.popolo_source,
-                content_type=ct,
+                content_type=content_type,
                 object_id__in=object_ids).update(
                     deleted_from_source=True)
+
+    def notify_observers_of_deletions(self, model_and_object_id_tuples):
+        iterator = _group_by_model_class(model_and_object_id_tuples)
+        for model_class, object_ids in iterator:
+            collection = model_class.__name__.lower()
+            for popolo_object in model_class.objects.filter(pk__in=object_ids):
+                for observer in self.observers:
+                    observer.notify_deleted(collection, popolo_object)
 
     def update_from_source(self):
         # Save the objects we knew about before the update:
@@ -82,6 +102,7 @@ class PopoloSourceImporter(PopoloJSONImporter):
         # longer exist in the source and mark them as such.
         disappeared = existing_live_objects - tracker.seen
         self.mark_as_deleted(disappeared)
+        self.notify_observers_of_deletions(disappeared)
 
     # We need to override this so that we only consider something an
     # existing object if it's from the same PopoloSource, as well as

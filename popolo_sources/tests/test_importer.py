@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 import json
-from mock import patch
+from mock import patch, Mock
 from os.path import dirname, exists, join
 import sys
 
@@ -186,3 +186,29 @@ class PopoloSourceTests(TestCase):
                 Exception,
                 r"Unknown collection 'not-a-collection'"):
             importer.get_existing_django_object('not-a-collection', 'y1z2')
+
+    def test_deleted_notification(self, fake_get):
+        observer = Mock()
+        popolo_source = PopoloSource.objects.create(
+            url='http://example.com/two-people.json')
+        importer = PopoloSourceImporter(popolo_source)
+        importer.add_observer(observer)
+        importer.update_from_source()
+        # notify should now have been called twice, once for each
+        # person.
+        self.assertEqual(observer.notify.call_count, 2)
+        self.assertEqual(observer.notify_deleted.call_count, 0)
+
+        # Now change the URL of the source to one that only has one
+        # person:
+        popolo_source.url = 'http://example.com/single-person.json'
+        popolo_source.save()
+
+        importer.update_from_source()
+
+        # Now notify_deleted should have been triggered once, and
+        # notify one more time than before:
+        self.assertEqual(observer.notify.call_count, 3)
+        self.assertEqual(observer.notify_deleted.call_count, 1)
+        observer.notify_deleted.assert_called_once_with(
+            'person', Person.objects.get(name='Bob'))
