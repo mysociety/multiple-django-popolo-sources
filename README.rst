@@ -52,7 +52,7 @@ based on any changes in the Popolo JSON source.
 The model that represents the join table linking :code:`PopoloSource`
 models with django-popolo models is
 :code:`popolo_sources.models.LinkToPopoloSource`. This model has the
-:code:`deleted_from_source` attributed, so you can find all
+:code:`deleted_from_source` attribute, so you can find all
 non-deleted top-level django-popolo with code like:
 
 .. code:: python

@@ -1,0 +1,7 @@
+0.0.3
+    * The importer now notifies observers of objects that have
+      disappeared from the Popolo source.
+0.0.2
+    * Database migrations (for Django >= 1.7) have been added. 
+0.0.1
+    * Initial release.
