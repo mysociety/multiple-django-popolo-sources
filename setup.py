@@ -15,7 +15,7 @@ setup(
     license = "AGPL",
     keywords = "django popolo civic-tech",
     install_requires = [
-        'Django>=1.7',
+        'Django>=1.8',
         'mysociety-django-popolo>=0.0.6',
         'requests',
     ],
